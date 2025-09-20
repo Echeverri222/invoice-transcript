@@ -22,10 +22,5 @@
       "src": "/(.*)",
       "dest": "/build/$1"
     }
-  ],
-  "functions": {
-    "server/index.js": {
-      "memory": 1024
-    }
-  }
+  ]
 }
