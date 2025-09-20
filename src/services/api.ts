@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { ProcessingResponse, ProcessedInvoice } from '../types/Invoice';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api'  // Use relative URL in production
+  : 'http://localhost:3001/api';  // Use localhost in development
 
 const api = axios.create({
   baseURL: API_BASE_URL,
