@@ -1,227 +1,338 @@
-# Invoice Transcript App
+# 🩺 Medical Invoice Processing App
 
-A React/TypeScript application that processes medical invoice images using OpenAI Vision API and automatically updates Excel files with extracted data.
+A production-ready React/TypeScript application that processes medical invoice images using AI and automatically manages Excel files with extracted DOPPLER service data.
 
-## Features
+## 🌐 Live Application
 
-- 🖼️ **Image Processing**: Upload medical invoice images for automatic data extraction
-- 🤖 **AI-Powered**: Uses OpenAI Vision API to read and extract invoice information
-- 📊 **Excel Integration**: Automatically updates Excel files with processed data
-- 🗄️ **Database Tracking**: SQLite database to track processed invoices and prevent duplicates
-- 📋 **Multiple Services**: Handles invoices with multiple service entries (creates separate rows)
-- 🎨 **Modern UI**: Beautiful and responsive interface built with Ant Design
+**Production URL:** [invoice-transcript-app.vercel.app](https://invoice-transcript-2y78xmgur-simon-echeverri-zapatas-projects.vercel.app)
 
-## Tech Stack
+## ✨ Features
 
-- **Frontend**: React 18, TypeScript, Ant Design, Styled Components
-- **Backend**: Node.js, Express, SQLite (better-sqlite3)
-- **AI**: OpenAI Vision API (GPT-4-Vision)
-- **File Processing**: XLSX library for Excel file handling
-- **Database**: SQLite for invoice tracking
+- 📱 **Mobile Camera Support**: Take photos directly from your phone
+- 🔄 **Batch Processing**: Upload and process up to 19 invoices simultaneously
+- 🤖 **Dual AI Processing**: OpenAI GPT-4o + Google Vision API for enhanced accuracy
+- ☁️ **Cloud Storage**: AWS S3 for Excel file storage and management
+- 📥 **Excel Downloads**: Download current Excel file anytime
+- 🗄️ **PostgreSQL Database**: Cloud database with duplicate prevention
+- 🎯 **DOPPLER Filtering**: Only processes DOPPLER services, ignoring other types
+- 🛡️ **Race Condition Protection**: Handles concurrent processing safely
+- 💰 **Value Processing**: Automatically removes centavos and applies 50% discount
+- 🎨 **Modern UI**: Responsive interface with real-time progress tracking
 
-## Prerequisites
+## 🏗️ Tech Stack
 
-- Node.js (version 14 or higher)
-- OpenAI API key
-- Git
+### Frontend
 
-## Installation & Setup
+- React 18 + TypeScript
+- Ant Design + Styled Components
+- React Dropzone for file uploads
+- Axios for API communication
 
-### 1. Clone the Repository
+### Backend
+
+- Node.js + Express (Serverless on Vercel)
+- OpenAI GPT-4o Vision API
+- Google Cloud Vision API
+- Multer with memory storage
+
+### Cloud Services
+
+- **Deployment**: Vercel (Serverless)
+- **Database**: PostgreSQL (Neon)
+- **Storage**: AWS S3 (sa-east-1)
+- **Version Control**: GitHub with auto-deployment
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 16+
+- OpenAI API key with GPT-4o access
+- Google Cloud Vision API credentials
+- AWS S3 bucket and credentials
+- PostgreSQL database (Neon recommended)
+
+### Local Development
 
 ```bash
-git clone <your-repository-url>
+# Clone repository
+git clone https://github.com/Echeverri222/invoice-transcript.git
 cd invoice-transcript
-```
 
-### 2. Install Dependencies
-
-```bash
+# Install dependencies
 npm install
+
+# Set up environment variables (see below)
+cp .env.example .env
+# Edit .env with your credentials
+
+# Start development servers
+npm run server    # Backend on port 3001
+npm start         # Frontend on port 3000
 ```
 
-### 3. Set Environment Variables
+### Environment Variables
 
-Create a `.env` file in the root directory and add your OpenAI API key:
+Create `.env` file in root:
 
 ```env
-OPENAI_API_KEY=your_openai_api_key_here
+# AI Services
+OPENAI_API_KEY=sk-your-openai-key-here
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYourPrivateKeyHere\n-----END PRIVATE KEY-----"
+GOOGLE_CLOUD_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+
+# AWS S3
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=sa-east-1
+S3_BUCKET=your-bucket-name
+
+# Database
+POSTGRES_URL=postgresql://user:password@host:port/database
 ```
 
-### 4. Start the Backend Server
+## 📊 How It Works
 
-```bash
-npm run server
+### 1. Image Processing Pipeline
+
+```
+Upload Image → Google Vision OCR → GPT-4o Processing → Data Extraction
 ```
 
-The server will start on port 3001.
+### 2. Data Filtering
 
-### 5. Start the React Frontend
+- Extracts ALL services from invoice
+- **Filters only DOPPLER services** (ignores HOLTER, ECOCARDIOGRAMA, etc.)
+- Validates Colombian cedula format (max 10 digits, numbers only)
+- Processes currency values (removes centavos, validates < 1M pesos)
 
-In a new terminal:
+### 3. EPS Recognition
 
-```bash
-npm start
-```
+Automatically maps insurance providers:
 
-The application will open in your browser at `http://localhost:3000`.
+- NUEVA EPS → Nueva EPS
+- ALIANZA → Alianza
+- SURAMERICANA → Sura
+- MUTUAL SER → MUTUAL SER
+- SANITAS → SANITAS
+- DISPENSARIO → Dispensario Medico/Medellín
+- SALUD TOTAL → Salud Total
 
-## Usage
+### 4. Excel File Management
 
-### Processing Invoices
+- **Single Processing**: Updates Excel immediately
+- **Batch Processing**: Updates Excel once after all processing completes
+- **Race Condition Safe**: Prevents data loss during concurrent uploads
+- **Cloud Storage**: Stored in AWS S3 for global access
 
-1. **Upload Image**: Drag and drop or click to upload a medical invoice image
-2. **Process**: Click "Process Invoice" to extract data using AI
-3. **Review**: View the extracted information and verify accuracy
-4. **Excel Update**: The system automatically updates the Excel file with new rows
+## 📋 Excel Output Format
 
-### Features
+| Column              | Description               | Example                     |
+| ------------------- | ------------------------- | --------------------------- |
+| FECHA               | Processing date           | 2025-09-20                  |
+| NOMBRE              | Patient name              | MARIA GARCIA                |
+| ID                  | Colombian cedula          | 12345678                    |
+| EPS                 | Insurance provider        | Nueva EPS                   |
+| ESTUDIOS REALIZADOS | Service description       | DOPPLER DE VASOS DEL CUELLO |
+| COSTO               | Original cost             | 183600                      |
+| COSTO FINAL         | Final cost (50% discount) | 91800                       |
+| OBSERVACIONES       | Notes (empty)             |                             |
 
-- **Duplicate Detection**: The app prevents processing the same invoice twice
-- **Multiple Services**: Each service in an invoice creates a separate Excel row
-- **History Tracking**: View all previously processed invoices
-- **Error Handling**: Clear error messages for troubleshooting
+## 🔧 API Endpoints
 
-### Supported Image Formats
+### Upload & Processing
 
-- PNG, JPG, JPEG, GIF, BMP, WEBP
+- `POST /api/upload-invoice` - Process single invoice image
+- `POST /api/batch-update-excel` - Rebuild Excel from database (prevents race conditions)
 
-## Database Schema
+### Data Management
 
-The application uses SQLite with two main tables:
+- `GET /api/processed-invoices` - List all processed invoices
+- `GET /api/check-invoice/:ordenServicio` - Check if invoice exists
+- `GET /api/download-excel` - Download current Excel file
+- `DELETE /api/invoice/:id` - Delete processed invoice
+
+## 🗄️ Database Schema
 
 ### `processed_invoices`
-- `id`: Primary key
-- `orden_servicio`: Service order number (unique)
-- `patient_name`: Patient's full name
-- `patient_id`: Patient's ID number
-- `processed_date`: When the invoice was processed
-- `excel_row_count`: Number of rows added to Excel
-- `image_path`: Path to the uploaded image
+
+```sql
+id SERIAL PRIMARY KEY,
+orden_servicio VARCHAR(255) UNIQUE NOT NULL,
+patient_name VARCHAR(255),
+patient_id VARCHAR(50), 
+processed_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+excel_row_count INTEGER DEFAULT 0,
+image_path VARCHAR(500)
+```
 
 ### `invoice_services`
-- `id`: Primary key
-- `invoice_id`: Foreign key to processed_invoices
-- `service_code`: Service code
-- `service_description`: Service description
-- `service_value`: Service value/cost
 
-## API Endpoints
-
-- `POST /api/upload-invoice`: Upload and process invoice image
-- `GET /api/processed-invoices`: Get list of all processed invoices
-- `GET /api/check-invoice/:ordenServicio`: Check if invoice already exists
-- `DELETE /api/invoice/:id`: Delete processed invoice
-
-## Excel File Structure
-
-The system expects/creates an Excel file with these columns:
-
-1. Orden de Servicio (Service Order)
-2. Fecha (Date)
-3. Hospital
-4. Paciente (Patient)
-5. Identificación (ID)
-6. Edad (Age)
-7. Sexo (Sex)
-8. Plan
-9. Código Servicio (Service Code)
-10. Descripción Servicio (Service Description)
-11. Valor (Value)
-
-## Configuration
-
-### OpenAI Configuration
-The system uses the GPT-4-Vision model for image processing. Make sure your OpenAI account has access to vision models.
-
-### Excel File Location
-By default, the system looks for/updates the Excel file at:
-```
-ESTUDIOS DOPPLER JULIO - AGOSTO 2025.xlsx
+```sql
+id SERIAL PRIMARY KEY,
+invoice_id INTEGER REFERENCES processed_invoices(id),
+service_code VARCHAR(100),
+service_description VARCHAR(500),
+service_value DECIMAL(10,2)
 ```
 
-You can modify this in `server/index.js` on line 203.
+## 📱 Usage
 
-## Error Handling
+### Single Invoice
 
-- **Duplicate Invoice**: Returns 409 status with invoice details
-- **Invalid Image**: Returns 400 status with error message
-- **OpenAI API Error**: Returns 500 status with API error details
-- **Database Error**: Returns 500 status with database error details
+1. **Upload**: Drag & drop or click to select image
+2. **Camera**: Use "Take Photo" for mobile capture
+3. **Process**: AI extracts and validates data
+4. **Review**: Verify extracted information
+5. **Save**: Data saved to database and Excel updated
 
-## Development
+### Batch Processing
+
+1. **Multiple Upload**: Select/drag up to 19 images
+2. **Parallel Processing**: 4 concurrent AI processing threads
+3. **Progress Tracking**: Real-time progress bar and current file display
+4. **Batch Excel Update**: Single Excel update after all processing
+5. **Results Summary**: Shows successful/failed processing counts
+
+### Excel Management
+
+- **Auto-Update**: Excel file updated automatically after processing
+- **Download**: Click "Download Excel File" button anytime
+- **Cloud Sync**: File stored in S3, accessible globally
+- **Version Control**: Each update replaces previous version
+
+## 🚀 Deployment
+
+### Vercel Deployment (Recommended)
+
+1. **Fork Repository**
+
+   ```bash
+   # Fork https://github.com/Echeverri222/invoice-transcript
+   ```
+2. **Connect to Vercel**
+
+   - Import project from GitHub
+   - Set environment variables in Vercel dashboard
+   - Enable automatic deployments
+3. **Configure Environment Variables**
+
+   - Add all required environment variables in Vercel project settings
+   - Use Vercel secrets for sensitive data
+4. **Deploy**
+
+   - Push to main branch triggers automatic deployment
+   - Production URL provided after successful build
+
+### Database Setup (Neon)
+
+1. Create account at [neon.tech](https://neon.tech)
+2. Create new project: `invoice-transcript-db`
+3. Copy connection string to `POSTGRES_URL`
+4. Tables created automatically on first run
+
+### AWS S3 Setup
+
+1. Create S3 bucket in `sa-east-1` region
+2. Set bucket policy for application access
+3. Create IAM user with S3 permissions
+4. Add credentials to environment variables
+
+## 🔍 Monitoring & Logs
+
+### Production Logs
+
+```bash
+# View real-time logs
+npx vercel logs your-deployment-url
+
+# Check API status
+curl https://your-app.vercel.app/api/processed-invoices
+```
+
+### Health Checks
+
+- Database connectivity: Automatic table creation on startup
+- S3 connectivity: Excel download/upload tests
+- AI services: Error handling with fallbacks
+
+## 🛠️ Development
 
 ### Project Structure
 
 ```
-├── public/
-│   └── index.html
 ├── src/
-│   ├── components/
-│   │   ├── ImageUpload.tsx
-│   │   ├── ProcessingResults.tsx
-│   │   └── ProcessedInvoices.tsx
-│   ├── services/
-│   │   └── api.ts
-│   ├── types/
-│   │   └── Invoice.ts
-│   ├── App.tsx
-│   └── index.tsx
+│   ├── components/          # React components
+│   ├── services/           # API communication
+│   ├── types/             # TypeScript definitions
+│   └── App.tsx           # Main application
 ├── server/
-│   ├── index.js
-│   └── uploads/ (created automatically)
-├── package.json
-├── tsconfig.json
-└── README.md
+│   └── index.js          # Express server (serverless)
+├── scripts/
+│   └── upload-excel-to-s3.js  # S3 utilities
+├── vercel.json           # Vercel configuration
+└── package.json         # Dependencies and scripts
 ```
 
 ### Available Scripts
 
-- `npm start`: Start the React development server
-- `npm run build`: Build the React app for production
-- `npm run server`: Start the backend server
-- `npm test`: Run tests
+- `npm start` - React development server
+- `npm run build` - Production build
+- `npm run server` - Backend server (development)
+- `npm run vercel-build` - Vercel production build
+- `npm run upload-excel` - Upload Excel to S3
 
-## Troubleshooting
+### Testing
+
+```bash
+# Test single invoice processing
+curl -X POST -F "invoice=@test-image.jpg" \
+  https://your-app.vercel.app/api/upload-invoice
+
+# Test Excel batch update  
+curl -X POST https://your-app.vercel.app/api/batch-update-excel
+
+# Download Excel file
+curl -O https://your-app.vercel.app/api/download-excel
+```
+
+## ⚡ Performance
+
+- **Batch Processing**: Up to 19 invoices processed concurrently (4 at a time)
+- **AI Processing**: ~10-15 seconds per invoice (dual AI pipeline)
+- **Excel Updates**: Single operation prevents race conditions
+- **Serverless Scaling**: Auto-scales based on demand
+- **Global CDN**: Vercel edge network for fast loading
+
+## 🛡️ Security
+
+- **Environment Variables**: All secrets stored securely
+- **CORS Protection**: Configured for production domains
+- **Input Validation**: File type and size restrictions
+- **Database Security**: PostgreSQL with SSL connections
+- **S3 Security**: IAM roles with minimal permissions
+
+## 🚨 Troubleshooting
 
 ### Common Issues
 
-1. **"OpenAI API key not found"**
-   - Make sure you've set the `OPENAI_API_KEY` environment variable
+**"Failed to load processed invoices"**
 
-2. **"Server not responding"**
-   - Ensure the backend server is running on port 3001
-   - Check for port conflicts
+- Check POSTGRES_URL environment variable
+- Verify database connectivity
 
-3. **"Database error"**
-   - The SQLite database is created automatically
-   - Check file permissions in the project directory
+**"Server error during processing"**
 
-4. **"Excel file not found"**
-   - The system creates a new Excel file if none exists
-   - Ensure you have write permissions in the project directory
+- Check OpenAI API key and quota
+- Verify Google Vision API credentials
 
-### Logs
+**"Excel download failed"**
 
-- Backend logs are displayed in the server terminal
-- Frontend errors appear in the browser console
+- Check AWS S3 credentials and bucket permissions
+- Verify S3_BUCKET environment variable
 
-## Contributing
+**"Race condition data loss"**
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-This project is licensed under the MIT License.
-
-## Support
-
-For issues and questions:
-1. Check the troubleshooting section above
-2. Review the console logs for error details
-3. Ensure all dependencies are properly installed
-4. Verify your OpenAI API key is valid and has vision access
+- Use batch Excel update endpoint: `POST /api/batch-update-excel`
+- Check database for all processed invoices
