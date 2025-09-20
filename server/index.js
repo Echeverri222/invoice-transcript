@@ -10,7 +10,7 @@ const OpenAI = require('openai');
 const vision = require('@google-cloud/vision');
 const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
-// Use Supabase with @vercel/postgres (works with any PostgreSQL)
+// Use Neon PostgreSQL with @vercel/postgres (works with any PostgreSQL)
 const { sql } = require('@vercel/postgres');
 
 const app = express();

@@ -1,15 +1,20 @@
-# Supabase PostgreSQL Setup Guide
+# PostgreSQL Database Setup Guide (Neon - Free Alternative)
 
 ## 🗄️ Create Database via Vercel Marketplace
 
-### Setup via Vercel Dashboard (Recommended)
+### Setup with Neon (Recommended - Free Tier)
 1. Go to [vercel.com/dashboard](https://vercel.com/dashboard) 
 2. Go to your project → **"Storage"** tab
-3. Under **"Marketplace Database Providers"**, click **"Supabase"**
+3. Under **"Marketplace Database Providers"**, click **"Neon"** → **"Create"**
 4. Follow the integration flow to connect your Vercel account
-5. Create new Supabase project: `invoice-transcript-db`
-6. Select region: **South America (São Paulo)** (closest to your location)
+5. Create new Neon project: `invoice-transcript-db`
+6. Select region: **US East** or closest to your users
 7. Complete the integration
+
+### Alternative: Prisma Postgres
+1. Click **"Prisma Postgres"** → **"Create"**  
+2. Follow similar integration flow
+3. Free tier with instant serverless PostgreSQL
 
 ### Option 2: Via Vercel CLI (Alternative)
 ```bash
@@ -46,13 +51,15 @@ POSTGRES_URL=your_supabase_postgres_connection_string_here
 3. Copy the `POSTGRES_URL` or `DATABASE_URL` value
 4. It should look like: `postgres://postgres:[password]@[host]:5432/postgres`
 
-## ⚡ Benefits of Supabase Integration
+## ⚡ Benefits of Neon Integration
 
 - ✅ **Automatic environment variables** in Vercel
-- ✅ **Supabase dashboard** for database management
+- ✅ **Neon Console** for database management  
 - ✅ **Built-in connection pooling**
-- ✅ **Free tier**: 50,000 monthly active users
-- ✅ **Global CDN** for better performance
+- ✅ **Generous free tier**: 3GB storage + 100 compute hours/month
+- ✅ **Serverless scaling**: Pay only for what you use
+- ✅ **Branching**: Database branches for testing (like Git!)
+- ✅ **No credit card required** for free tier
 
 ## 🧪 Test Connection
 
