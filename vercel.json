@@ -23,15 +23,9 @@
       "dest": "/build/$1"
     }
   ],
-  "env": {
-    "OPENAI_API_KEY": "@openai-api-key",
-    "AWS_ACCESS_KEY_ID": "@aws-access-key-id",
-    "AWS_SECRET_ACCESS_KEY": "@aws-secret-access-key",
-    "AWS_REGION": "@aws-region",
-    "S3_BUCKET": "@s3-bucket",
-    "GOOGLE_CLOUD_PROJECT": "@google-cloud-project",
-    "GOOGLE_CLOUD_PRIVATE_KEY": "@google-cloud-private-key",
-    "GOOGLE_CLOUD_CLIENT_EMAIL": "@google-cloud-client-email",
-    "POSTGRES_URL": "@postgres-url"
+  "functions": {
+    "server/index.js": {
+      "memory": 1024
+    }
   }
 }
