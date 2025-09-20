@@ -22,13 +22,6 @@ const DropzoneContainer = styled.div<{ isDragActive: boolean }>`
   }
 `;
 
-const PreviewImage = styled.img`
-  max-width: 300px;
-  max-height: 400px;
-  border-radius: 8px;
-  margin: 16px 0;
-`;
-
 export interface BatchProcessingResults {
   successful: ProcessingResponse[];
   failed: { fileName: string; error: string }[];
