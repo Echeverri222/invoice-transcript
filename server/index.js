@@ -48,23 +48,13 @@ const EXCEL_FILE_KEY = 'ESTUDIOS DOPPLER JULIO - AGOSTO 2025.xlsx';
 app.use(cors());
 app.use(express.json());
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
-
-// Multer configuration for image uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+// Multer configuration for image uploads (using memory storage for serverless)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
   }
 });
-
-const upload = multer({ storage: storage });
 
 // S3 Helper Functions
 const downloadExcelFromS3 = async () => {
@@ -161,16 +151,17 @@ const initDB = async () => {
 // Initialize database
 initDB();
 
-// Helper function to encode image as base64
-const encodeImage = (imagePath) => {
-  const imageBuffer = fs.readFileSync(imagePath);
+// Helper function to encode image as base64 (works with buffer)
+const encodeImage = (imageBuffer) => {
   return imageBuffer.toString('base64');
 };
 
 // OCR processing using Google Vision API
-const performOCR = async (imagePath) => {
+const performOCR = async (imageBuffer) => {
   try {
-    const [result] = await visionClient.documentTextDetection(imagePath);
+    const [result] = await visionClient.documentTextDetection({
+      image: { content: imageBuffer }
+    });
     const fullTextAnnotation = result.fullTextAnnotation;
     return fullTextAnnotation ? fullTextAnnotation.text : '';
   } catch (error) {
@@ -253,11 +244,11 @@ const postProcessInvoiceData = async (parsedData) => {
 };
 
 // Enhanced extraction using OCR + GPT-4o text processing
-const extractInvoiceDataEnhanced = async (imagePath) => {
+const extractInvoiceDataEnhanced = async (imageBuffer) => {
   try {
     // Step 1: Try OCR with Vision API first
     console.log('Attempting OCR with Google Vision API...');
-    const ocrText = await performOCR(imagePath);
+    const ocrText = await performOCR(imageBuffer);
     
     if (ocrText) {
       // Step 2: Pre-extract cedula with regex
@@ -345,19 +336,19 @@ const extractInvoiceDataEnhanced = async (imagePath) => {
     } else {
       // Fallback to original Vision API method
       console.log('OCR failed, falling back to GPT-4o Vision...');
-      return await extractInvoiceDataOriginal(imagePath);
+      return await extractInvoiceDataOriginal(imageBuffer);
     }
   } catch (error) {
     console.error('Enhanced extraction failed:', error);
     // Fallback to original method
-    return await extractInvoiceDataOriginal(imagePath);
+    return await extractInvoiceDataOriginal(imageBuffer);
   }
 };
 
 // Original extraction method (kept as fallback)
-const extractInvoiceDataOriginal = async (imagePath) => {
+const extractInvoiceDataOriginal = async (imageBuffer) => {
   try {
-    const base64Image = encodeImage(imagePath);
+    const base64Image = encodeImage(imageBuffer);
     
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -565,10 +556,10 @@ app.post('/api/upload-invoice', upload.single('invoice'), async (req, res) => {
       return res.status(400).json({ error: 'No image file uploaded' });
     }
 
-    const imagePath = req.file.path;
+    const imageBuffer = req.file.buffer;
     
     // Extract data from image
-    const invoiceData = await extractInvoiceData(imagePath);
+    const invoiceData = await extractInvoiceData(imageBuffer);
     
     // Check if invoice already exists
     if (await checkInvoiceExists(invoiceData.orden_servicio)) {
@@ -578,8 +569,8 @@ app.post('/api/upload-invoice', upload.single('invoice'), async (req, res) => {
       });
     }
 
-    // Save to database
-    const invoiceId = await saveInvoiceToDatabase(invoiceData, imagePath);
+    // Save to database (no file path in serverless environment)
+    const invoiceId = await saveInvoiceToDatabase(invoiceData, req.file.originalname);
     
     // Update Excel file in S3
     const rowsAdded = await updateExcelFile(invoiceData);
