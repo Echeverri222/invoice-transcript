@@ -369,7 +369,7 @@ const extractInvoiceDataOriginal = async (imageBuffer) => {
                 - Patient ID should be 6-10 digits long
               2. DATE: From top right corner, format as DD/MM/YYYY
               3. EPS: From "Entidad" or "Plan" field, look for these patterns and return EXACT match:
-                 - If contains "SURAMERICANA" → return "Sura"
+                 - If contains "SURA" → return "Sura"
                  - If contains "NUEVA EPS" → return "Nueva EPS"
                  - If contains "ALIANZA" → return "Alianza"  
                  - If contains "MUTUAL" → return "MUTUAL SER"
@@ -573,8 +573,9 @@ app.post('/api/upload-invoice', upload.single('invoice'), async (req, res) => {
     // Save to database (no file path in serverless environment)
     const invoiceId = await saveInvoiceToDatabase(invoiceData, req.file.originalname);
     
-    // Update Excel file in S3
-    const rowsAdded = await updateExcelFile(invoiceData);
+    // Note: Excel will be updated in batch after all processing completes
+    // This prevents race conditions during concurrent processing
+    const rowsAdded = invoiceData.services.length;
     
     res.json({
       success: true,
@@ -586,6 +587,90 @@ app.post('/api/upload-invoice', upload.single('invoice'), async (req, res) => {
 
   } catch (error) {
     console.error('Error processing invoice:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Batch update Excel file with all recent processing
+app.post('/api/batch-update-excel', async (req, res) => {
+  try {
+    console.log('Starting batch Excel update...');
+    
+    // Get all processed invoices that need to be in Excel
+    const result = await sql`
+      SELECT pi.*, STRING_AGG(inv_svc.service_code || ': ' || inv_svc.service_description, '; ') as services,
+             json_agg(
+               json_build_object(
+                 'code', inv_svc.service_code,
+                 'description', inv_svc.service_description, 
+                 'value', inv_svc.service_value
+               )
+             ) as services_detail
+      FROM processed_invoices pi
+      LEFT JOIN invoice_services inv_svc ON pi.id = inv_svc.invoice_id
+      GROUP BY pi.id, pi.orden_servicio, pi.patient_name, pi.patient_id, pi.processed_date, pi.excel_row_count, pi.image_path
+      ORDER BY pi.processed_date ASC
+    `;
+    
+    // Rebuild the entire Excel file from database
+    let workbook = XLSX.utils.book_new();
+    const sheetName = 'Estudios Doppler';
+    
+    // Create headers
+    const headers = [
+      'FECHA',
+      'NOMBRE', 
+      'ID',
+      'EPS',
+      'ESTUDIOS REALIZADOS',
+      'COSTO',
+      'COSTO FINAL',
+      'OBSERVACIONES'
+    ];
+    
+    let allRows = [headers];
+    let totalRowsAdded = 0;
+    
+    // Process each invoice
+    for (const invoice of result.rows) {
+      if (invoice.services_detail && Array.isArray(invoice.services_detail)) {
+        for (const service of invoice.services_detail) {
+          if (service && service.description) {
+            const originalValue = parseFloat(service.value) || 0;
+            const finalValue = originalValue * 0.5;
+            
+            const row = [
+              invoice.processed_date?.split('T')[0] || '', // FECHA (YYYY-MM-DD format)
+              invoice.patient_name || '',                  // NOMBRE
+              invoice.patient_id || '',                    // ID
+              '', // EPS (would need to extract from original data)
+              service.description || '',                   // ESTUDIOS REALIZADOS
+              originalValue,                               // COSTO
+              finalValue,                                 // COSTO FINAL
+              ''                                          // OBSERVACIONES
+            ];
+            allRows.push(row);
+            totalRowsAdded++;
+          }
+        }
+      }
+    }
+    
+    // Create worksheet and upload to S3
+    const worksheet = XLSX.utils.aoa_to_sheet(allRows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    await uploadExcelToS3(workbook);
+    
+    console.log(`Batch Excel update completed. Total rows: ${totalRowsAdded}`);
+    res.json({
+      success: true,
+      message: 'Excel file updated successfully',
+      totalInvoices: result.rows.length,
+      totalRows: totalRowsAdded
+    });
+    
+  } catch (error) {
+    console.error('Error in batch Excel update:', error);
     res.status(500).json({ error: error.message });
   }
 });

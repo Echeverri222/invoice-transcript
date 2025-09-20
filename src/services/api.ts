@@ -62,4 +62,9 @@ export const apiService = {
     link.remove();
     window.URL.revokeObjectURL(url);
   },
+
+  async batchUpdateExcel(): Promise<{success: boolean, totalInvoices: number, totalRows: number, message: string}> {
+    const response = await api.post('/batch-update-excel');
+    return response.data;
+  },
 };

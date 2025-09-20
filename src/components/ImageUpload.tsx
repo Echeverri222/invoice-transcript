@@ -163,6 +163,18 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onUploadSuccess, onBatchUploa
           message.error(`${totalFailed} invoices failed to process.`);
         }
         
+        // Update Excel file with all processed data (prevents race conditions)
+        if (totalSuccess > 0) {
+          try {
+            message.info('Updating Excel file with all processed invoices...');
+            const excelResult = await apiService.batchUpdateExcel();
+            message.success(`Excel file updated successfully! ${excelResult.totalRows} total rows in file.`);
+          } catch (excelError) {
+            console.error('Excel update error:', excelError);
+            message.warning('Invoices processed successfully, but Excel update failed. Please try downloading the file manually.');
+          }
+        }
+        
         onBatchUploadSuccess(results);
       }
       
