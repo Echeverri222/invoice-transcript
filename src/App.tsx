@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Layout, Typography, Space, Divider, Alert, Card, List, Tag } from 'antd';
-import { FileTextOutlined, MedicineBoxOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Layout, Typography, Space, Divider, Alert, Card, List, Tag, Button, message } from 'antd';
+import { FileTextOutlined, MedicineBoxOutlined, CheckCircleOutlined, CloseCircleOutlined, DownloadOutlined, LoadingOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import ImageUpload, { BatchProcessingResults } from './components/ImageUpload';
 import ProcessingResults from './components/ProcessingResults';
 import ProcessedInvoices from './components/ProcessedInvoices';
 import { ProcessingResponse } from './types/Invoice';
+import { apiService } from './services/api';
 import 'antd/dist/reset.css';
 
 const { Header, Content, Footer } = Layout;
@@ -55,6 +56,7 @@ const App: React.FC = () => {
   const [batchResults, setBatchResults] = useState<BatchProcessingResults | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
 
   const handleUploadSuccess = (response: ProcessingResponse) => {
     setProcessingResult(response);
@@ -74,6 +76,22 @@ const App: React.FC = () => {
     setError(errorMessage);
     setProcessingResult(null);
     setBatchResults(null);
+  };
+
+  const handleDownloadExcel = async () => {
+    setIsDownloading(true);
+    try {
+      await apiService.downloadExcel();
+      message.success('Excel file downloaded successfully!');
+    } catch (error: any) {
+      console.error('Download error:', error);
+      const errorMessage = error.response?.status === 404 
+        ? 'No Excel file available. Please process at least one invoice first.'
+        : error.response?.data?.error || 'Failed to download Excel file';
+      message.error(errorMessage);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -110,6 +128,28 @@ const App: React.FC = () => {
                 onUploadError={handleUploadError}
               />
             </div>
+
+            {/* Download Excel Section */}
+            <Card>
+              <div style={{ textAlign: 'center' }}>
+                <Title level={4} style={{ marginBottom: 16 }}>
+                  <FileTextOutlined style={{ marginRight: 8 }} />
+                  Download Current Excel File
+                </Title>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+                  Download the latest Excel file with all processed invoices from S3 storage
+                </Text>
+                <Button 
+                  type="primary" 
+                  size="large"
+                  icon={isDownloading ? <LoadingOutlined /> : <DownloadOutlined />}
+                  onClick={handleDownloadExcel}
+                  loading={isDownloading}
+                >
+                  {isDownloading ? 'Downloading...' : 'Download Excel File'}
+                </Button>
+              </div>
+            </Card>
 
             {/* Error Display */}
             {error && (

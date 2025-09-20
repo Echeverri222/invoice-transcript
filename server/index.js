@@ -642,6 +642,38 @@ app.delete('/api/invoice/:id', async (req, res) => {
   }
 });
 
+// Download Excel file from S3
+app.get('/api/download-excel', async (req, res) => {
+  try {
+    console.log(`Downloading Excel file from S3: ${S3_BUCKET}/${EXCEL_FILE_KEY}`);
+    
+    const command = new GetObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: EXCEL_FILE_KEY,
+    });
+    
+    const response = await s3Client.send(command);
+    
+    // Set proper headers for Excel file download
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${EXCEL_FILE_KEY}"`);
+    res.setHeader('Content-Length', response.ContentLength);
+    
+    // Stream the file directly to the response
+    const stream = response.Body;
+    stream.pipe(res);
+    
+  } catch (error) {
+    console.error('Error downloading Excel file from S3:', error);
+    
+    if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
+      res.status(404).json({ error: 'Excel file not found. Please process at least one invoice first.' });
+    } else {
+      res.status(500).json({ error: 'Failed to download Excel file', details: error.message });
+    }
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log('Make sure to set your OPENAI_API_KEY environment variable');
