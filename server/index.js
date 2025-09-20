@@ -369,6 +369,7 @@ const extractInvoiceDataOriginal = async (imageBuffer) => {
                 - Patient ID should be 6-10 digits long
               2. DATE: From top right corner, format as DD/MM/YYYY
               3. EPS: From "Entidad" or "Plan" field, look for these patterns and return EXACT match:
+                 - If contains "SURAMERICANA" → return "Sura"
                  - If contains "NUEVA EPS" → return "Nueva EPS"
                  - If contains "ALIANZA" → return "Alianza"  
                  - If contains "MUTUAL" → return "MUTUAL SER"
